@@ -77,8 +77,13 @@ namespace KeyVaultCA
                 }
 
                 // Issue device certificate
-                var csr = File.ReadAllBytes(csrConfig.PathToCsr);
-                var cert = await kvCertProvider.SignRequestAsync(csr, estConfig.IssuingCA, estConfig.CertValidityInDays, csrConfig.IsIntermediateCA);
+                CertificateConfiguration certConfig = new(){
+                    Csr = File.ReadAllBytes(csrConfig.PathToCsr),
+                    IssuerCertificateName = estConfig.IssuingCA,
+                    ValidityDays = estConfig.CertValidityInDays,
+                    IsIntermediateCA = csrConfig.IsIntermediateCA
+                };
+                var cert = await kvCertProvider.SignRequestAsync(certConfig);
 
                 File.WriteAllBytes(csrConfig.OutputFileName, cert.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Cert));
                 logger.LogInformation("Device certificate was created successfully.");

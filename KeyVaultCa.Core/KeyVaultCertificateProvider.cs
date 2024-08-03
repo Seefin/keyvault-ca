@@ -75,15 +75,11 @@ namespace KeyVaultCa.Core
         /// <summary>
         /// Creates a KeyVault signed certficate from signing request.
         /// </summary>
-        public async Task<X509Certificate2> SignRequestAsync(
-            byte[] certificateRequest,
-            string issuerCertificateName,
-            int validityInDays,
-            bool caCert = false)
+        public async Task<X509Certificate2> SignRequestAsync(CertificateConfiguration config)
         {
-            _logger.LogInformation("Preparing certificate request with issuer name {name}, {days} days validity period and 'is a CA certificate' flag set to {flag}.", issuerCertificateName, validityInDays, caCert);
+            _logger.LogInformation("Preparing certificate request with issuer name {name}, {days} days validity period and 'is a CA certificate' flag set to {flag}.", config.IssuerCertificateName, config.ValidityDays, config.IsIntermediateCA || config.IsRootCA);
 
-            var pkcs10CertificationRequest = new Pkcs10CertificationRequest(certificateRequest);
+            var pkcs10CertificationRequest = new Pkcs10CertificationRequest(config.Csr);
 
             if (!pkcs10CertificationRequest.Verify())
             {
@@ -94,7 +90,7 @@ namespace KeyVaultCa.Core
             var info = pkcs10CertificationRequest.GetCertificationRequestInfo();
             var notBefore = DateTime.UtcNow.AddDays(-1);
 
-            var certBundle = await _keyVaultServiceClient.GetCertificateAsync(issuerCertificateName).ConfigureAwait(false);
+            var certBundle = await _keyVaultServiceClient.GetCertificateAsync(config.IssuerCertificateName).ConfigureAwait(false);
 
             var signingCert = new X509Certificate2(certBundle.Value.Cer);
             var publicKey = KeyVaultCertFactory.GetRSAPublicKey(info.SubjectPublicKeyInfo);
@@ -103,12 +99,12 @@ namespace KeyVaultCa.Core
                 info.Subject.ToString(),
                 2048,
                 notBefore,
-                notBefore.AddDays(validityInDays),
+                notBefore.AddDays(config.ValidityDays),
                 256,
                 signingCert,
                 publicKey,
                 new KeyVaultSignatureGenerator(_keyVaultServiceClient.Credential, certBundle.Value.KeyId, signingCert),
-                caCert
+                config.IsIntermediateCA || config.IsRootCA
                 );
         }
     }
