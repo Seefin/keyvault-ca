@@ -71,7 +71,7 @@ Generate a CSR for your intermediate CA by using the Azure Portal/CLI/PowerShell
 openssl req -in <CSR_FILE_PATH> -out <CSR_FILE_PATH>.der -outform DER
 ```
 
-3. Once translated, sign the Intermediate CA with the Root CA. I like to have my Root CA lifetime be 10 years,
+2. Once translated, sign the Intermediate CA with the Root CA. I like to have my Root CA lifetime be 10 years,
   and my Intermediates 5 years, with the actual certs lasting 1 year. We specify overrides in this command, but 
   you can modify `KeyVaultCA/appsettings.json` to set defaults.  
   ```
@@ -95,13 +95,13 @@ openssl req -in <CSR_FILE_PATH> -out <CSR_FILE_PATH>.der -outform DER
 openssl genrsa -out mydevice.key 4098
 ```
 
-3. Create the CSR:  
+2. Create the CSR:  
 ```
 openssl req -new -key mydevice.key -out mydevice.csr
 openssl req -in mydevice.csr -out mydevice.csr.der -outform DER
 ```
 
-4. Run the API Facade and pass all required arguments:   
+3. Run the API Facade and pass all required arguments:   
 ```
 cd KeyVaultCA
 dotnet run --Csr:IsRootCA "false" --Csr:PathToCsr <PATH_TO_CSR_IN_DER_FORMAT> --Csr:OutputFileName <OUTPUT_CERTIFICATE_FILENAME>
