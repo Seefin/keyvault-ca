@@ -23,13 +23,13 @@ namespace KeyVaultCa.Core
             _logger = logger;
         }
 
-        public async Task CreateCACertificateAsync(string issuerCertificateName, string subject, int certPathLength)
+        public async Task CreateCACertificateAsync(CertificateConfiguration config)
         {
-            var certVersions = await _keyVaultServiceClient.GetCertificateVersionsAsync(issuerCertificateName).ConfigureAwait(false);
+            var certVersions = await _keyVaultServiceClient.GetCertificateVersionsAsync(config.IssuerCertificateName).ConfigureAwait(false);
 
             if (certVersions != 0)
             {
-                _logger.LogInformation("A certificate with the specified issuer name {name} already exists.", issuerCertificateName);
+                _logger.LogInformation("A certificate with the specified issuer name {name} already exists.", config.IssuerCertificateName);
             }
 
             else
@@ -37,14 +37,14 @@ namespace KeyVaultCa.Core
                 _logger.LogInformation("No existing certificate found, starting to create a new one.");
                 var notBefore = DateTime.UtcNow.AddDays(-1);
                 await _keyVaultServiceClient.CreateCACertificateAsync(
-                        issuerCertificateName,
-                        subject,
+                        config.IssuerCertificateName,
+                        config.Subject,
                         notBefore,
-                        notBefore.AddMonths(48),
-                        4096,
+                        notBefore.AddMonths(config.ValidityMonths),
+                        config.KeySize,
                         256,
-                        certPathLength);
-                _logger.LogInformation("A new certificate with issuer name {name} and path length {path} was created succsessfully.", issuerCertificateName, certPathLength);
+                        config.PathLength);
+                _logger.LogInformation("A new certificate with issuer name {name} and path length {path} was created succsessfully.", config.IssuerCertificateName, config.PathLength);
             }
         }
 

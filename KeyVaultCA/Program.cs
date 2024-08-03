@@ -52,7 +52,14 @@ namespace KeyVaultCA
                 }
 
                 // Generate issuing certificate in KeyVault
-                await kvCertProvider.CreateCACertificateAsync(estConfig.IssuingCA, csrConfig.Subject, estConfig.CertPathLength);
+                CertificateConfiguration certConfig = new()
+                {
+                    IssuerCertificateName = estConfig.IssuingCA,
+                    Subject = csrConfig.Subject,
+                    PathLength = estConfig.CertPathLength,
+                    ValidityMonths = estConfig.CertValidityInDays / 30
+                };
+                await kvCertProvider.CreateCACertificateAsync(certConfig);
                 logger.LogInformation("CA certificate was either created successfully or it already existed in the Key Vault {kvUrl}.", estConfig.KeyVaultUrl);
             }
             else
