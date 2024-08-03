@@ -2,7 +2,9 @@
 {
     public class CsrConfiguration
     {
-        public bool IsRootCA { get; set; }
+        public bool IsRootCA { get; set; } = false;
+
+        public bool IsIntermediateCA { get; set; } = false;
 
         public string Subject { get; set; }
 
