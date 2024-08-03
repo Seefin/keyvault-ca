@@ -41,6 +41,8 @@ The following common block must be filled in, for all usages of the projects.
     "IssuingCA": "<Name of the issuing certificate in KeyVault.>",
     "CertValidityInDays": "<Validity period for issued certificates>",
     "MaxCertValidity":"<Maximum validity of issued certificates. CertValidityInDayscannot exceed this value.>",
+    "CertValidityInDays": "<Validity period for issued certificates>",
+    "MaxCertValidity":"<Maximum validity of issued certificates. CertValidityInDayscannot exceed this value.>",
     "CertPathLength": "<Path length of the certificate chain which gives the maximum number of non-self-issued intermediate certificates that may follow this certificate in a valid certification path. For the Root CA certificate stored in KV, the value should be at least 1, for the others, obtained through the EST server, is sufficient to have 0.>"
   }
 ```
@@ -79,6 +81,9 @@ Generate a CSR for your intermediate CA by using the Azure Portal/CLI/PowerShell
 1. First generate the private key. It should be noted, if generating this certificate in Azure Key Vault (and therfore 
     skipping this step), Key Vault only permits EC keys to be used in signatures, not Encipherment or Key Agreement.
 ```openssl genrsa -out mydevice.key 4098```  
+1. First generate the private key. It should be noted, if generating this certificate in Azure Key Vault (and therfore 
+    skipping this step), Key Vault only permits EC keys to be used in signatures, not Encipherment or Key Agreement.
+```openssl genrsa -out mydevice.key 4098```  
 
 2. Create the CSR:  
 ```openssl req -new -key mydevice.key -out mydevice.csr```  
@@ -92,6 +97,7 @@ If desired, values can also be set in the `Csr` block of the `appsettings.json`.
 ```
 "Csr": {
     "IsRootCA": "<Boolean value. To register a Root CA, value should be true, otherwise false.>",
+    "IsIntermediateCA": "<Boolean value. To register an Intermediate CA, set to true, otherwise false>",
     "IsIntermediateCA": "<Boolean value. To register an Intermediate CA, set to true, otherwise false>",
     "Subject": "<Subject in the format 'C=US, ST=WA, L=Redmond, O=Contoso, OU=Contoso HR, CN=Contoso Inc'.>",
     "PathToCsr": "<Path to the CSR file in .der format.>",
