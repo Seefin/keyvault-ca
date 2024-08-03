@@ -18,7 +18,7 @@ namespace KeyVaultCa.Core
 
         public int ValidityDays { get; set; }
 
-        public int KeySize { get; set; } = 4096;
+        public int KeySize { get; set; } = 2048;
 
         public byte[] Csr { get; set; }
     }

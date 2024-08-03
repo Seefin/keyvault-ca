@@ -97,7 +97,7 @@ namespace KeyVaultCa.Core
 
             return await KeyVaultCertFactory.CreateSignedCertificate(
                 info.Subject.ToString(),
-                2048,
+                (ushort)config.KeySize,
                 notBefore,
                 notBefore.AddDays(config.ValidityDays),
                 256,
