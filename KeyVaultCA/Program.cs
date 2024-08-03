@@ -63,9 +63,9 @@ namespace KeyVaultCA
                     Environment.Exit(1);
                 }
 
-                if (estConfig.CertValidityInDays <= 0 || estConfig.CertValidityInDays > 365)
+                if (estConfig.CertValidityInDays <= 0 || estConfig.CertValidityInDays > estConfig.MaxCertValidity)
                 {
-                    logger.LogError("Number of days specified as the certificate validity period should be between 1 and 365.");
+                    logger.LogError("Number of days specified as the certificate validity period should be between 1 and {maxValid}.", estConfig.MaxCertValidity);
                     Environment.Exit(1);
                 }
 
