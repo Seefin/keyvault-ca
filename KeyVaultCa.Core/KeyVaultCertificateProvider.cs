@@ -23,13 +23,13 @@ namespace KeyVaultCa.Core
             _logger = logger;
         }
 
-        public async Task CreateCACertificateAsync(string issuerCertificateName, string subject, int certPathLength)
+        public async Task CreateCACertificateAsync(CertificateConfiguration config)
         {
-            var certVersions = await _keyVaultServiceClient.GetCertificateVersionsAsync(issuerCertificateName).ConfigureAwait(false);
+            var certVersions = await _keyVaultServiceClient.GetCertificateVersionsAsync(config.IssuerCertificateName).ConfigureAwait(false);
 
             if (certVersions != 0)
             {
-                _logger.LogInformation("A certificate with the specified issuer name {name} already exists.", issuerCertificateName);
+                _logger.LogInformation("A certificate with the specified issuer name {name} already exists.", config.IssuerCertificateName);
             }
 
             else
@@ -37,14 +37,14 @@ namespace KeyVaultCa.Core
                 _logger.LogInformation("No existing certificate found, starting to create a new one.");
                 var notBefore = DateTime.UtcNow.AddDays(-1);
                 await _keyVaultServiceClient.CreateCACertificateAsync(
-                        issuerCertificateName,
-                        subject,
+                        config.IssuerCertificateName,
+                        config.Subject,
                         notBefore,
-                        notBefore.AddMonths(48),
-                        4096,
+                        notBefore.AddMonths(config.ValidityMonths),
+                        config.KeySize,
                         256,
-                        certPathLength);
-                _logger.LogInformation("A new certificate with issuer name {name} and path length {path} was created succsessfully.", issuerCertificateName, certPathLength);
+                        config.PathLength);
+                _logger.LogInformation("A new certificate with issuer name {name} and path length {path} was created succsessfully.", config.IssuerCertificateName, config.PathLength);
             }
         }
 
@@ -75,15 +75,11 @@ namespace KeyVaultCa.Core
         /// <summary>
         /// Creates a KeyVault signed certficate from signing request.
         /// </summary>
-        public async Task<X509Certificate2> SignRequestAsync(
-            byte[] certificateRequest,
-            string issuerCertificateName,
-            int validityInDays,
-            bool caCert = false)
+        public async Task<X509Certificate2> SignRequestAsync(CertificateConfiguration config)
         {
-            _logger.LogInformation("Preparing certificate request with issuer name {name}, {days} days validity period and 'is a CA certificate' flag set to {flag}.", issuerCertificateName, validityInDays, caCert);
+            _logger.LogInformation("Preparing certificate request with issuer name {name}, {days} days validity period and 'is a CA certificate' flag set to {flag}.", config.IssuerCertificateName, config.ValidityDays, config.IsIntermediateCA || config.IsRootCA);
 
-            var pkcs10CertificationRequest = new Pkcs10CertificationRequest(certificateRequest);
+            var pkcs10CertificationRequest = new Pkcs10CertificationRequest(config.Csr);
 
             if (!pkcs10CertificationRequest.Verify())
             {
@@ -94,21 +90,21 @@ namespace KeyVaultCa.Core
             var info = pkcs10CertificationRequest.GetCertificationRequestInfo();
             var notBefore = DateTime.UtcNow.AddDays(-1);
 
-            var certBundle = await _keyVaultServiceClient.GetCertificateAsync(issuerCertificateName).ConfigureAwait(false);
+            var certBundle = await _keyVaultServiceClient.GetCertificateAsync(config.IssuerCertificateName).ConfigureAwait(false);
 
             var signingCert = new X509Certificate2(certBundle.Value.Cer);
             var publicKey = KeyVaultCertFactory.GetRSAPublicKey(info.SubjectPublicKeyInfo);
 
             return await KeyVaultCertFactory.CreateSignedCertificate(
                 info.Subject.ToString(),
-                2048,
+                (ushort)config.KeySize,
                 notBefore,
-                notBefore.AddDays(validityInDays),
+                notBefore.AddDays(config.ValidityDays),
                 256,
                 signingCert,
                 publicKey,
                 new KeyVaultSignatureGenerator(_keyVaultServiceClient.Credential, certBundle.Value.KeyId, signingCert),
-                caCert
+                config.IsIntermediateCA || config.IsRootCA
                 );
         }
     }

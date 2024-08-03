@@ -8,6 +8,8 @@ namespace KeyVaultCa.Core
 
         public int CertValidityInDays { get; set; }
 
+        public int MaxCertValidity {get; set; } = 730;
+
         public int CertPathLength { get; set; }
     }
 }

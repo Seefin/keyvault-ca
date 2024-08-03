@@ -20,12 +20,22 @@
             "label": "test",
             "command": "dotnet",
             "type": "shell",
-            "args": ["test", "${workspaceFolder}/E2ETests/E2ETests.csproj"],
+            "args": [
+                "test",
+                "${workspaceFolder}/E2ETests/E2ETests.csproj"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "type": "dotnet",
+            "task": "build",
             "group": {
-                "kind": "test",
+                "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": []
+            "problemMatcher": [],
+            "label": "dotnet: build"
         }
     ]
 }

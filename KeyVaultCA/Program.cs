@@ -52,7 +52,14 @@ namespace KeyVaultCA
                 }
 
                 // Generate issuing certificate in KeyVault
-                await kvCertProvider.CreateCACertificateAsync(estConfig.IssuingCA, csrConfig.Subject, estConfig.CertPathLength);
+                CertificateConfiguration certConfig = new()
+                {
+                    IssuerCertificateName = estConfig.IssuingCA,
+                    Subject = csrConfig.Subject,
+                    PathLength = estConfig.CertPathLength,
+                    ValidityMonths = estConfig.CertValidityInDays / 30
+                };
+                await kvCertProvider.CreateCACertificateAsync(certConfig);
                 logger.LogInformation("CA certificate was either created successfully or it already existed in the Key Vault {kvUrl}.", estConfig.KeyVaultUrl);
             }
             else
@@ -63,15 +70,20 @@ namespace KeyVaultCA
                     Environment.Exit(1);
                 }
 
-                if (estConfig.CertValidityInDays <= 0 || estConfig.CertValidityInDays > 365)
+                if (estConfig.CertValidityInDays <= 0 || estConfig.CertValidityInDays > estConfig.MaxCertValidity)
                 {
-                    logger.LogError("Number of days specified as the certificate validity period should be between 1 and 365.");
+                    logger.LogError("Number of days specified as the certificate validity period should be between 1 and {maxValid}.", estConfig.MaxCertValidity);
                     Environment.Exit(1);
                 }
 
                 // Issue device certificate
-                var csr = File.ReadAllBytes(csrConfig.PathToCsr);
-                var cert = await kvCertProvider.SignRequestAsync(csr, estConfig.IssuingCA, estConfig.CertValidityInDays);
+                CertificateConfiguration certConfig = new(){
+                    Csr = File.ReadAllBytes(csrConfig.PathToCsr),
+                    IssuerCertificateName = estConfig.IssuingCA,
+                    ValidityDays = estConfig.CertValidityInDays,
+                    IsIntermediateCA = csrConfig.IsIntermediateCA
+                };
+                var cert = await kvCertProvider.SignRequestAsync(certConfig);
 
                 File.WriteAllBytes(csrConfig.OutputFileName, cert.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Cert));
                 logger.LogInformation("Device certificate was created successfully.");
