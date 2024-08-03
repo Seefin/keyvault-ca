@@ -39,7 +39,8 @@ The following common block must be filled in, for all usages of the projects.
 "KeyVault": {
     "KeyVaultUrl": "<Key Vault URL>",
     "IssuingCA": "<Name of the issuing certificate in KeyVault.>",
-    "CertValidityInDays": "<Validity period for issued certificates (maximum is 365 days)>",
+    "CertValidityInDays": "<Validity period for issued certificates>",
+    "MaxCertValidity":"<Maximum validity of issued certificates. CertValidityInDayscannot exceed this value.>",
     "CertPathLength": "<Path length of the certificate chain which gives the maximum number of non-self-issued intermediate certificates that may follow this certificate in a valid certification path. For the Root CA certificate stored in KV, the value should be at least 1, for the others, obtained through the EST server, is sufficient to have 0.>"
   }
 ```
@@ -52,10 +53,30 @@ Run the API Facade like this (feel free to use your own values for the subject):
 ```cd KeyVaultCA```  
 ```dotnet run --Csr:IsRootCA "true" --Csr:Subject "C=US, ST=WA, L=Redmond, O=Contoso, OU=Contoso HR, CN=Contoso Inc"``` 
 
+## (Optional) Generate a Intermediate CA in Key Vault
+Generate a CSR for your intermediate CA by using the Azure Portal/CLI/PowerShell Module and getting a CSR _somehow._
+
+1. Once you have a CSR, in order for the script to parse it, you should run
+```openssl req -in <CSR_FILE_PATH> -out <CSR_FILE_PATH>.der -outform DER```
+
+2. Once translated, sign the Intermediate CA with the Root CA. I like to have my Root CA lifetime be 10 years,
+   and my Intermediates 5 years, with the actual certs lasting 1 year. We specify overrides in this command, but 
+   you can modify `KeyVaultCA/appsettings.json` to set defaults.
+```cd KeyVaultCA```
+```dotnet run --Csr:IsIntermediateCA "true" --KeyVault:CertValidityInDays "730" --KeyVault:CertPathLength "1" --Csr:PathToCsr <PATH_TO_CSR_IN_DER_FORMAT> --Csr:OutputFileName <OUTPUT_CERTIFICATE_FILENAME>```
+```openssl x509 -in <OUTPUT_CERTIFICATE_FILENAME> -out <OUTPUT_CERTIFICATE_FILENAME>.pem -outform PEM```
+
+3. Go back to Azure, find the pending IntermediateCA certificate, and upload the Signed PEM certificate
+   using the Merge Signed Response button.
+
+4. Now, you can set your `IssuingCA` in the `appsettings.json` to your new Intermediate CA, and use that
+   to issue certificates.
+
 ## Request a new device certificate
 
-1. First generate the private key:  
-```openssl genrsa -out mydevice.key 2048```  
+1. First generate the private key. It should be noted, if generating this certificate in Azure Key Vault (and therfore 
+    skipping this step), Key Vault only permits EC keys to be used in signatures, not Encipherment or Key Agreement.
+```openssl genrsa -out mydevice.key 4098```  
 
 2. Create the CSR:  
 ```openssl req -new -key mydevice.key -out mydevice.csr```  
@@ -69,6 +90,7 @@ If desired, values can also be set in the `Csr` block of the `appsettings.json`.
 ```
 "Csr": {
     "IsRootCA": "<Boolean value. To register a Root CA, value should be true, otherwise false.>",
+    "IsIntermediateCA": "<Boolean value. To register an Intermediate CA, set to true, otherwise false>",
     "Subject": "<Subject in the format 'C=US, ST=WA, L=Redmond, O=Contoso, OU=Contoso HR, CN=Contoso Inc'.>",
     "PathToCsr": "<Path to the CSR file in .der format.>",
     "OutputFileName": "<Output file name for the certificate.>"
